@@ -134,6 +134,103 @@
               <div v-html="renderedContent"></div>
             </div>
 
+            <!-- Resources -->
+            <div v-if="currentLesson?.resources?.length > 0 || course?.resources?.length > 0" class="mt-8">
+              <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Resources</h2>
+              
+              <!-- Lesson Resources -->
+              <div v-if="currentLesson?.resources?.length > 0" class="space-y-4 mb-6">
+                <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300">Lesson Resources</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div v-for="(resource, index) in currentLesson.resources" 
+                       :key="index"
+                       class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-start space-x-3">
+                      <!-- Resource Icon -->
+                      <div class="flex-shrink-0">
+                        <i v-if="resource.type === 'link'" class="fas fa-link text-blue-500"></i>
+                        <i v-else-if="resource.type === 'video'" class="fas fa-video text-red-500"></i>
+                        <i v-else-if="resource.type === 'image'" class="fas fa-image text-green-500"></i>
+                        <i v-else class="fas fa-file text-gray-500"></i>
+                      </div>
+                      
+                      <!-- Resource Content -->
+                      <div class="flex-1">
+                        <h4 class="font-medium text-gray-900 dark:text-white">{{ resource.title }}</h4>
+                        <p v-if="resource.description" class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          {{ resource.description }}
+                        </p>
+                        
+                        <!-- Resource Actions -->
+                        <div class="mt-2">
+                          <a v-if="resource.url" 
+                             :href="resource.url" 
+                             target="_blank"
+                             class="inline-flex items-center text-sm text-blue-600 hover:text-blue-500">
+                            Visit Resource
+                            <i class="fas fa-external-link-alt ml-1"></i>
+                          </a>
+                          <a v-if="resource.fileUrl" 
+                             :href="resource.fileUrl"
+                             download
+                             class="inline-flex items-center text-sm text-blue-600 hover:text-blue-500">
+                            Download
+                            <i class="fas fa-download ml-1"></i>
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Course Resources -->
+              <div v-if="course?.resources?.length > 0" class="space-y-4">
+                <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300">Course Resources</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div v-for="(resource, index) in course.resources" 
+                       :key="index"
+                       class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-start space-x-3">
+                      <!-- Resource Icon -->
+                      <div class="flex-shrink-0">
+                        <i v-if="resource.type === 'link'" class="fas fa-link text-blue-500"></i>
+                        <i v-else-if="resource.type === 'video'" class="fas fa-video text-red-500"></i>
+                        <i v-else-if="resource.type === 'image'" class="fas fa-image text-green-500"></i>
+                        <i v-else class="fas fa-file text-gray-500"></i>
+                      </div>
+                      
+                      <!-- Resource Content -->
+                      <div class="flex-1">
+                        <h4 class="font-medium text-gray-900 dark:text-white">{{ resource.title }}</h4>
+                        <p v-if="resource.description" class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          {{ resource.description }}
+                        </p>
+                        
+                        <!-- Resource Actions -->
+                        <div class="mt-2">
+                          <a v-if="resource.url" 
+                             :href="resource.url" 
+                             target="_blank"
+                             class="inline-flex items-center text-sm text-blue-600 hover:text-blue-500">
+                            Visit Resource
+                            <i class="fas fa-external-link-alt ml-1"></i>
+                          </a>
+                          <a v-if="resource.fileUrl" 
+                             :href="resource.fileUrl"
+                             download
+                             class="inline-flex items-center text-sm text-blue-600 hover:text-blue-500">
+                            Download
+                            <i class="fas fa-download ml-1"></i>
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Navigation -->
             <div class="flex justify-between pt-6">
               <button
@@ -224,6 +321,7 @@ const currentLessonIndex = ref(0)
 const expandedModules = ref({})
 const showingQuiz = ref(false)
 const quizAnswers = ref({})
+const selectedResource = ref(null)
 
 // Configure marked with syntax highlighting
 marked.setOptions({

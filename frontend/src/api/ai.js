@@ -461,11 +461,47 @@ from fundamental concepts to advanced applications.`
 
   async getChatResponse(message, context) {
     try {
+      console.log('Starting chat response request with context:', {
+        courseTitle: context.courseTitle,
+        difficulty: context.difficulty,
+        targetAudience: context.targetAudience
+      })
+      
       const token = await getAuthToken()
-      const response = await axios.post(`${API_URL}/ai/chat`, 
+      console.log('Auth token obtained successfully')
+      
+      // Enhanced prompt to better guide the AI
+      const enhancedPrompt = `You are an AI course assistant helping to improve the course "${context.courseTitle}". 
+      The course is targeted at ${context.targetAudience} at a ${context.difficulty} level.
+
+      When analyzing or modifying course content:
+      1. Automatically detect and preserve existing section structure
+      2. Generate detailed, non-repetitive content for each section
+      3. Each section should include:
+         - Clear title
+         - Comprehensive content
+         - Specific, practical examples
+         - Actionable key points
+         - Best practices where applicable
+      4. When asked to enhance content:
+         - Add new, relevant information
+         - Avoid repeating existing content
+         - Maintain consistent depth and quality
+         - Ensure smooth transitions between topics
+      
+      ${message}`
+
+      const response = await axios.post(
+        `${API_URL}/ai/chat`,
         {
-          message,
-          context
+          message: enhancedPrompt,
+          context: {
+            currentContent: context.currentContent,
+            difficulty: context.difficulty,
+            targetAudience: context.targetAudience,
+            courseTitle: context.courseTitle,
+            chatHistory: context.chatHistory || []
+          }
         },
         {
           headers: {
@@ -474,9 +510,113 @@ from fundamental concepts to advanced applications.`
           }
         }
       )
-      return response.data
+
+      if (!response.data) {
+        throw new Error('Empty response from AI')
+      }
+      
+      console.log('Received AI response:', {
+        hasAdjustedContent: !!response.data.adjustedContent,
+        hasMessage: !!response.data.message,
+        hasResponse: !!response.data.response
+      })
+
+      let adjustedContent = null
+      let aiMessage = ''
+
+      // Enhanced content parsing
+      if (response.data.adjustedContent) {
+        adjustedContent = response.data.adjustedContent
+        aiMessage = response.data.message || 'Course content updated successfully!'
+      } else if (response.data.message || response.data.response) {
+        const messageText = response.data.message || response.data.response
+        
+        // Try to extract course content from the message
+        try {
+          // Look for section patterns in the text
+          const sections = []
+          const sectionPattern = /\*\*Section \d+:([^*]+)\*\*([^*]+)(?=\*\*Section|$)/g
+          let match
+
+          while ((match = sectionPattern.exec(messageText)) !== null) {
+            const title = match[1].trim()
+            const content = match[2].trim()
+            
+            // Extract key points and examples
+            const keyPoints = []
+            const examples = []
+            const bestPractices = []
+            
+            // Parse key points
+            const keyPointPattern = /\* ([^*\n]+)/g
+            let keyPointMatch
+            while ((keyPointMatch = keyPointPattern.exec(content)) !== null) {
+              keyPoints.push(keyPointMatch[1].trim())
+            }
+            
+            // Parse examples
+            const examplePattern = /Example:([^*\n]+)/g
+            let exampleMatch
+            while ((exampleMatch = examplePattern.exec(content)) !== null) {
+              examples.push(exampleMatch[1].trim())
+            }
+            
+            sections.push({
+              title,
+              content,
+              keyPoints,
+              examples,
+              bestPractices,
+              order: sections.length + 1,
+              duration: 90,
+              lessons: [{
+                title: title,
+                content: content,
+                duration: 90,
+                completed: false,
+                resources: [],
+                quiz: null
+              }]
+            })
+          }
+
+          if (sections.length > 0) {
+            adjustedContent = { sections }
+            aiMessage = 'Course content updated based on your request.'
+          } else {
+            aiMessage = messageText
+          }
+        } catch (parseError) {
+          console.warn('Content parsing error:', parseError.message)
+          aiMessage = messageText
+        }
+      }
+
+      // Clean and validate the final response
+      return {
+        message: cleanContent(aiMessage),
+        adjustedContent: adjustedContent ? {
+          sections: adjustedContent.sections.map((section, index) => ({
+            title: String(section.title || ''),
+            content: String(section.content || ''),
+            keyPoints: Array.isArray(section.keyPoints) ? section.keyPoints.map(String) : [],
+            examples: Array.isArray(section.examples) ? section.examples.map(String) : [],
+            bestPractices: Array.isArray(section.bestPractices) ? section.bestPractices.map(String) : [],
+            order: Number(section.order || index + 1),
+            duration: Number(section.duration || 90),
+            lessons: Array.isArray(section.lessons) ? section.lessons.map(lesson => ({
+              title: String(lesson.title || ''),
+              content: String(lesson.content || ''),
+              duration: Number(lesson.duration || 90),
+              completed: Boolean(lesson.completed || false),
+              resources: Array.isArray(lesson.resources) ? lesson.resources : [],
+              quiz: lesson.quiz || null
+            })) : []
+          }))
+        } : null
+      }
     } catch (error) {
-      console.error('Error getting chat response:', error)
+      console.error('Error in getChatResponse:', error)
       throw error
     }
   }

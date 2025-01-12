@@ -331,7 +331,152 @@
             </div>
           </div>
         </div>
+        
+        <!-- AI Chat Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-6">
+          <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">AI Course Assistant</h2>
+          
+          <div class="space-y-4">
+            <!-- Chat History -->
+            <div class="space-y-4 max-h-96 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+              <div v-for="(message, index) in chatHistory" :key="index" 
+                class="flex space-x-3"
+                :class="message.role === 'user' ? 'justify-end' : 'justify-start'"
+              >
+                <div 
+                  class="max-w-[80%] p-3 rounded-lg"
+                  :class="message.role === 'user' 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'"
+                >
+                  {{ message.content }}
+                </div>
+              </div>
+            </div>
 
+            <!-- Chat Input -->
+            <div class="flex space-x-4">
+              <input
+                v-model="aiPrompt"
+                type="text"
+                placeholder="Ask AI to adjust or enhance your course content..."
+                class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                @keyup.enter="sendAIPrompt"
+              />
+              <button
+                @click="sendAIPrompt"
+                :disabled="isAdjusting"
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {{ isAdjusting ? 'Adjusting...' : 'Send' }}
+              </button>
+            </div>
+
+            <!-- Suggested Prompts -->
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="(prompt, index) in suggestedPrompts"
+                :key="index"
+                @click="usePrompt(prompt)"
+                class="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
+              >
+                {{ prompt }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resources Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-6">
+          <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Course Resources</h2>
+          
+          <div class="space-y-4">
+            <div v-for="(resource, index) in courseData.resources" :key="index" class="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+              <div class="flex justify-between items-start mb-4">
+                <div class="flex-1 space-y-4">
+                  <input
+                    v-model="resource.title"
+                    type="text"
+                    placeholder="Resource Title"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                  <textarea
+                    v-model="resource.description"
+                    rows="2"
+                    placeholder="Resource Description"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
+                  ></textarea>
+                  
+                  <div class="flex space-x-4">
+                    <select
+                      v-model="resource.type"
+                      class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                      <option value="">Select Type</option>
+                      <option value="pdf">PDF</option>
+                      <option value="video">Video</option>
+                      <option value="image">Image</option>
+                      <option value="link">Link</option>
+                    </select>
+                    
+                    <div v-if="resource.type === 'link'" class="flex-1">
+                      <input
+                        v-model="resource.url"
+                        type="url"
+                        placeholder="Enter URL"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                    
+                    <div v-else-if="resource.type" class="flex-1">
+                      <input
+                        type="file"
+                        @change="(e) => handleResourceUpload(e, index)"
+                        :accept="getAcceptedFileTypes(resource.type)"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-blue-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                <button
+                  @click="removeResource(index)"
+                  class="ml-4 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-500"
+                >
+                  Remove
+                </button>
+              </div>
+              
+              <!-- Preview section -->
+              <div v-if="resource.url || resource.fileUrl" class="mt-4">
+                <div v-if="resource.type === 'image'" class="w-48 h-32">
+                  <img :src="resource.url || resource.fileUrl" :alt="resource.title" class="w-full h-full object-cover rounded-lg" />
+                </div>
+                <div v-else-if="resource.type === 'video'" class="w-full aspect-video">
+                  <video 
+                    :src="resource.url || resource.fileUrl" 
+                    controls 
+                    class="w-full h-full rounded-lg"
+                  ></video>
+                </div>
+                <div v-else-if="resource.type === 'pdf' && resource.fileUrl" class="text-sm text-gray-600 dark:text-gray-400">
+                  PDF uploaded: {{ resource.fileUrl.split('/').pop() }}
+                </div>
+                <div v-else-if="resource.type === 'link'" class="text-sm text-blue-600 dark:text-blue-400">
+                  <a :href="resource.url" target="_blank" rel="noopener noreferrer">{{ resource.url }}</a>
+                </div>
+              </div>
+            </div>
+            
+            <button
+              type="button"
+              @click="addResource"
+              class="w-full py-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-400 hover:border-blue-600 dark:hover:border-blue-600 hover:text-blue-600 dark:hover:text-blue-600 transition-colors duration-200"
+            >
+              Add Resource
+            </button>
+          </div>
+        </div>
         <!-- Course Content -->
         <div class="bg-white dark:bg-gray-800 rounded-lg p-6">
           <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Course Content</h2>
@@ -419,7 +564,7 @@
 </template>
 
 <script setup>
-import { ref as vueRef, reactive, computed, onMounted } from 'vue'
+import { ref as vueRef, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getAuth } from 'firebase/auth'
 import { collection, addDoc } from 'firebase/firestore'
@@ -441,6 +586,19 @@ const generatedQuiz = vueRef(null)
 const numberOfSections = vueRef(1)
 const currentSection = vueRef(0)
 const generatedContent = vueRef([])
+
+const aiPrompt = vueRef('')
+const isAdjusting = vueRef(false)
+const chatHistory = vueRef([])
+
+const suggestedPrompts = [
+  "Make the content more beginner-friendly",
+  "Add more practical examples",
+  "Include more advanced topics",
+  "Simplify the explanations",
+  "Add more interactive exercises",
+  "Focus more on best practices"
+]
 
 const courseData = reactive({
   title: '',
@@ -502,6 +660,7 @@ const initializeForm = () => {
   courseData.requirements = []
   courseData.outcomes = []
   courseData.tags = []
+  chatHistory.value = [] // Initialize chat history
 }
 
 onMounted(() => {
@@ -744,10 +903,24 @@ const handleSubmit = async (event) => {
     if (courseData.imageFile) {
       imageUrl = await processImage(courseData.imageFile);
     }
-    
+     // Process resources
+     const processedResources = await Promise.all(
+      courseData.resources.map(async (resource) => {
+        if (resource.file) {
+          const fileUrl = await processImage(resource.file) // You might want to create a separate function for different file types
+          return {
+            ...resource,
+            fileUrl,
+            file: null // Remove the file object before sending to the server
+          }
+        }
+        return resource
+      })
+    )
     const courseDataToSubmit = {
       ...courseData,
       imageUrl: imageUrl,
+      resources: processedResources,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       quizzes: generatedQuiz.value || [] // Add generated quiz to the course data
@@ -945,5 +1118,113 @@ const loadTestCourse = () => {
   courseData.courseStart = new Date("2025-01-20").toISOString()
   courseData.courseEnd = new Date("2025-12-31").toISOString()
   courseData.maxEnrollments = 1000
+}
+
+const addResource = () => {
+  courseData.resources.push({
+    title: '',
+    description: '',
+    type: '',
+    url: '',
+    fileUrl: null,
+    file: null
+  })
+}
+
+const removeResource = (index) => {
+  courseData.resources.splice(index, 1)
+}
+
+const getAcceptedFileTypes = (type) => {
+  switch (type) {
+    case 'pdf':
+      return '.pdf'
+    case 'video':
+      return 'video/*'
+    case 'image':
+      return 'image/*'
+    default:
+      return ''
+  }
+}
+
+const handleResourceUpload = async (event, index) => {
+  const file = event.target.files[0]
+  if (file) {
+    courseData.resources[index].file = file
+    try {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        courseData.resources[index].fileUrl = e.target.result
+      }
+      reader.readAsDataURL(file)
+    } catch (error) {
+      console.error('Error uploading resource:', error)
+      alert('Failed to upload resource. Please try again.')
+    }
+  }
+}
+
+const usePrompt = (prompt) => {
+  aiPrompt.value = prompt
+  sendAIPrompt()
+}
+
+const sendAIPrompt = async () => {
+  if (!aiPrompt.value.trim() || isAdjusting.value) return
+
+  try {
+    isAdjusting.value = true
+    
+    // Add user message to chat history
+    chatHistory.value.push({
+      role: 'user',
+      content: aiPrompt.value
+    })
+
+    // Prepare context for AI
+    const context = {
+      currentContent: courseData.sections,
+      difficulty: courseData.difficulty,
+      targetAudience: courseData.targetAudience,
+      courseTitle: courseData.title,
+      chatHistory: chatHistory.value.slice(-10) // Include last 10 messages for context
+    }
+    console.log("the prepared context for the ai is: ", context);
+    
+    // Get AI response
+    const response = await aiService.getChatResponse(aiPrompt.value, context)
+
+    // Add AI response to chat history
+    chatHistory.value.push({
+      role: 'assistant',
+      content: typeof response.message === 'string' 
+        ? response.message 
+        : JSON.stringify(response.message)
+    })
+
+    // Update course content if adjustments were made
+    if (response.adjustedContent && response.adjustedContent.sections) {
+      courseData.sections = response.adjustedContent.sections
+      
+      // Show success message
+      generationStatus.value = {
+        type: 'success',
+        message: 'Course content updated successfully!'
+      }
+    }
+
+    // Clear the input
+    aiPrompt.value = ''
+
+  } catch (error) {
+    console.error('Error adjusting course:', error)
+    generationStatus.value = {
+      type: 'error',
+      message: error.message || 'Failed to adjust course content'
+    }
+  } finally {
+    isAdjusting.value = false
+  }
 }
 </script>
