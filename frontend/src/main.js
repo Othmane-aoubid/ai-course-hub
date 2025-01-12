@@ -7,6 +7,36 @@ import App from './App.vue'
 import router from './router'
 import './style.css'
 import '@fortawesome/fontawesome-free/css/all.css'
+import { library } from '@fortawesome/fontawesome-svg-core'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { 
+  faFile,
+  faComment,
+  faVideo,
+  faExclamationTriangle,
+  faCheckCircle,
+  faPlusCircle,
+  faInbox,
+  faChartBar,
+  faCog,
+  faUser,
+  faPlus,
+  faUsers,
+  faBook,
+  faDollarSign,
+  faStar,
+  faSearch,
+  faFilter,
+  faEdit,
+  faEye,
+  faEllipsisV,
+  faClock,
+  faArrowUp,
+  faArrowDown,
+  faBars,
+  faChartPie,
+  faUserPlus
+} from '@fortawesome/free-solid-svg-icons'
 import './firebase' // Import Firebase initialization
 import { setupTokenRefresh } from './utils/auth' // Import token refresh
 
@@ -19,6 +49,39 @@ setupTokenRefresh()
 
 // Create app instance
 const app = createApp(App)
+
+// Add icons to the library
+library.add(
+  faFile,
+  faComment,
+  faVideo,
+  faExclamationTriangle,
+  faCheckCircle,
+  faPlusCircle,
+  faInbox,
+  faChartBar,
+  faCog,
+  faUser,
+  faPlus,
+  faUsers,
+  faBook,
+  faDollarSign,
+  faStar,
+  faSearch,
+  faFilter,
+  faEdit,
+  faEye,
+  faEllipsisV,
+  faClock,
+  faArrowUp,
+  faArrowDown,
+  faBars,
+  faChartPie,
+  faUserPlus
+)
+
+// Register font-awesome-icon component globally
+app.component('font-awesome-icon', FontAwesomeIcon)
 
 // Toast configuration
 const toastOptions = {
