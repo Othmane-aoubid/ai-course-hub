@@ -1,92 +1,154 @@
 <template>
-  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-        Course Engagement
-      </h3>
-      <div class="relative">
-        <select 
-          v-model="selectedTimeRange" 
-          class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-          @change="updateMetrics"
-        >
-          <option value="week">This Week</option>
-          <option value="month">This Month</option>
-          <option value="year">This Year</option>
-        </select>
-      </div>
-    </div>
-    
-    <div class="grid grid-cols-2 gap-4 mb-4">
-      <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-        <p class="text-sm text-gray-500 dark:text-gray-400">Active Students</p>
-        <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ activeStudents }}</p>
-        <p class="text-xs" :class="activeStudentsChange > 0 ? 'text-green-500' : 'text-red-500'">
-          {{ activeStudentsChange > 0 ? '+' : '' }}{{ activeStudentsChange }}% from last period
-        </p>
-      </div>
-      
-      <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-        <p class="text-sm text-gray-500 dark:text-gray-400">Completion Rate</p>
-        <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ completionRate }}%</p>
-        <p class="text-xs" :class="completionRateChange > 0 ? 'text-green-500' : 'text-red-500'">
-          {{ completionRateChange > 0 ? '+' : '' }}{{ completionRateChange }}% from last period
-        </p>
-      </div>
+  <div class="bg-[#232936] rounded-xl p-6 hover:shadow-2xl transition-all duration-300">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="text-lg font-semibold text-white">Course Engagement</h3>
+      <select 
+        v-model="selectedPeriod"
+        class="bg-[#2a3241] text-gray-300 rounded-lg px-3 py-2 border border-gray-700 focus:ring-2 focus:ring-blue-500"
+      >
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+        <option value="monthly">Monthly</option>
+      </select>
     </div>
 
-    <div class="h-48">
-      <!-- Chart will be added here in next iteration -->
-      <div class="w-full h-full flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-lg">
-        <p class="text-gray-400 dark:text-gray-500">Engagement Chart Coming Soon</p>
+    <!-- Loading State -->
+    <div v-if="isLoadingEngagement" class="h-64 flex items-center justify-center">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="engagementError" class="h-64 flex items-center justify-center text-red-400">
+      <font-awesome-icon icon="exclamation-circle" class="mr-2" />
+      {{ engagementError }}
+    </div>
+
+    <!-- Data Display -->
+    <div v-else class="space-y-6">
+      <!-- Key Metrics -->
+      <div class="grid grid-cols-2 gap-4">
+        <div class="bg-[#2a3241] rounded-lg p-4">
+          <p class="text-sm text-gray-400">Active Students</p>
+          <p class="text-2xl font-bold text-white mt-1">
+            {{ engagementData.activeStudents }}
+            <span class="text-sm text-gray-400">/ {{ engagementData.totalStudents }}</span>
+          </p>
+          <p class="text-sm mt-1" :class="activeStudentRate >= 70 ? 'text-green-400' : 'text-yellow-400'">
+            {{ activeStudentRate.toFixed(1) }}% Active
+          </p>
+        </div>
+        <div class="bg-[#2a3241] rounded-lg p-4">
+          <p class="text-sm text-gray-400">Completion Rate</p>
+          <p class="text-2xl font-bold text-white mt-1">
+            {{ engagementData.completionRate }}%
+          </p>
+          <p class="text-sm text-blue-400 mt-1">
+            Course Progress
+          </p>
+        </div>
+      </div>
+
+      <!-- Engagement Chart -->
+      <div class="h-48">
+        <canvas ref="engagementChart"></canvas>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import { ref, onMounted, watch } from 'vue'
+import { useAnalyticsStore } from '@/stores/analytics'
+import { storeToRefs } from 'pinia'
+import Chart from 'chart.js/auto'
+
 export default {
   name: 'CourseEngagementCard',
-  data() {
-    return {
-      selectedTimeRange: 'week',
-      activeStudents: 0,
-      activeStudentsChange: 0,
-      completionRate: 0,
-      completionRateChange: 0,
-      mockData: {
-        week: {
-          activeStudents: 150,
-          activeStudentsChange: 5,
-          completionRate: 75,
-          completionRateChange: 2
-        },
-        month: {
-          activeStudents: 450,
-          activeStudentsChange: 8,
-          completionRate: 70,
-          completionRateChange: 3
-        },
-        year: {
-          activeStudents: 1200,
-          activeStudentsChange: 15,
-          completionRate: 68,
-          completionRateChange: -1
-        }
+  
+  setup() {
+    const analyticsStore = useAnalyticsStore()
+    const { isLoadingEngagement, engagementError, engagementData, activeStudentRate, engagementChartData } = storeToRefs(analyticsStore)
+    
+    const selectedPeriod = ref('weekly')
+    const engagementChart = ref(null)
+    const chartInstance = ref(null)
+
+    const updateChart = () => {
+      if (chartInstance.value) {
+        chartInstance.value.destroy()
       }
+
+      const ctx = engagementChart.value.getContext('2d')
+      const data = engagementChartData.value[selectedPeriod.value]
+
+      chartInstance.value = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.map(d => d.label),
+          datasets: [{
+            label: 'Engagement',
+            data: data.map(d => d.value),
+            borderColor: '#60A5FA',
+            backgroundColor: 'rgba(96, 165, 250, 0.1)',
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: 'rgba(255, 255, 255, 0.1)'
+              },
+              ticks: {
+                color: '#9CA3AF'
+              }
+            },
+            x: {
+              grid: {
+                display: false
+              },
+              ticks: {
+                color: '#9CA3AF'
+              }
+            }
+          }
+        }
+      })
     }
-  },
-  methods: {
-    updateMetrics() {
-      const data = this.mockData[this.selectedTimeRange]
-      this.activeStudents = data.activeStudents
-      this.activeStudentsChange = data.activeStudentsChange
-      this.completionRate = data.completionRate
-      this.completionRateChange = data.completionRateChange
+
+    // Watch for changes in period or data
+    watch([selectedPeriod, engagementChartData], () => {
+      if (engagementChartData.value) {
+        updateChart()
+      }
+    })
+
+    // Initial data fetch
+    onMounted(async () => {
+      await analyticsStore.fetchCourseEngagement()
+      if (engagementChartData.value) {
+        updateChart()
+      }
+    })
+
+    return {
+      selectedPeriod,
+      engagementChart,
+      isLoadingEngagement,
+      engagementError,
+      engagementData,
+      activeStudentRate,
+      engagementChartData
     }
-  },
-  mounted() {
-    this.updateMetrics()
   }
 }
 </script>

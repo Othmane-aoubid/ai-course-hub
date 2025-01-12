@@ -270,4 +270,159 @@ Next priority after dashboard completion would be Course Management Enhancements
 - [ ] Batch upload functionality
 - [ ] Content version control
 
+### Analytics Implementation Plan
+
+#### 1. Core Analytics Implementation
+##### Course Engagement Metrics Panel [⏳ Waiting for Test]
+- [x] Setup pania store module for analytics data
+- [x] Create API endpoints for engagement metrics
+  - GET /api/analytics/engagement
+  - GET /api/analytics/engagement/:courseId
+- [x] Implement data visualization using Chart.js
+  - Daily/weekly/monthly view toggles
+  - Interactive tooltips
+  - Responsive charts
+- [x] Add real-time data updates using WebSocket
+
+##### Student Activity Tracking [⏳ Waiting for Test]
+- [x] Create activity tracking service
+- [x] Implement event tracking system for:
+  - Course access times
+  - Content interaction (videos, documents)
+  - Quiz/assignment attempts
+  - Discussion participation
+- [x] Setup activity log database schema
+- [x] Add activity aggregation endpoints
+- [x] Create StudentActivityCard component with:
+  - Activity summary display
+  - Filterable recent activities
+  - Real-time updates
+
+##### Course Completion & Video Analytics
+- Implement progress calculation system
+- Create completion tracking service
+- Add video analytics tracking:
+  - Watch duration
+  - Drop-off points
+  - Rewatch segments
+  - Playback speed preferences
+- Setup automated progress updates
+
+#### 2. Student Progress Statistics
+##### Individual Progress Tracking
+- Create student progress dashboard component
+- Implement progress visualization:
+  - Progress timeline
+  - Achievement milestones
+  - Learning path visualization
+  - Skill acquisition tracking
+- Add comparative analysis features
+
+##### Class Metrics & Trends
+- Setup analytics aggregation service
+- Implement statistical analysis:
+  - Class performance curves
+  - Trend analysis
+  - Outlier detection
+  - Predictive analytics
+- Create automated reporting system
+
+#### 3. Revenue Analytics Panel
+##### Financial Metrics Implementation
+- Setup secure financial data handling
+- Create revenue calculation service
+- Implement multiple currency support
+- Add payment tracking system
+
+##### Visualization & Reporting
+- Create interactive revenue charts:
+  - Monthly/yearly comparisons
+  - Course-wise breakdown
+  - Revenue forecasting
+  - Refund tracking
+- Implement export functionality
+- Add automated financial reports
+
+#### 4. Quick Access Feature Panel
+##### Real-time Updates System
+- Implement notification service
+- Setup WebSocket connections
+- Create notification preferences system
+- Add priority-based sorting
+
+##### Activity Tracking
+- Create activity logging system
+- Implement intelligent course sorting:
+  - Access frequency
+  - Recent updates
+  - Student engagement levels
+- Add quick action shortcuts
+
+### Technical Requirements
+1. Frontend:
+   - Chart.js for data visualization
+   - Socket.io-client for real-time updates
+   - Vuex for state management
+   - Vue-router for navigation
+   - TailwindCSS for styling
+
+2. Backend:
+   - WebSocket server for real-time updates
+   - Redis for caching
+   - MongoDB aggregation pipelines
+   - Background workers for data processing
+
+3. Analytics:
+   - Time-series data storage
+   - Data aggregation services
+   - Real-time event processing
+   - Data export functionality
+
+### Implementation Phases
+1. Setup Infrastructure (1 week)
+   - Database schema updates
+   - API endpoints creation
+   - Analytics service setup
+
+2. Core Analytics (2 weeks)
+   - Course engagement metrics
+   - Student activity tracking
+   - Video analytics implementation
+
+3. Progress Tracking (1 week)
+   - Individual progress features
+   - Class metrics implementation
+   - Trend analysis
+
+4. Revenue System (1 week)
+   - Financial tracking
+   - Revenue visualization
+   - Report generation
+
+5. Quick Access Features (1 week)
+   - Notification system
+   - Activity tracking
+   - Real-time updates
+
+### Testing Strategy
+1. Unit Tests
+   - Analytics calculations
+   - Data transformations
+   - Component rendering
+
+2. Integration Tests
+   - API endpoints
+   - WebSocket connections
+   - Data flow
+
+3. Performance Tests
+   - Load testing
+   - Real-time updates
+   - Data aggregation
+
+4. User Acceptance Testing
+   - Dashboard usability
+   - Data accuracy
+   - Feature completeness
+
 *Note: Items will be marked as [x] when completed*
