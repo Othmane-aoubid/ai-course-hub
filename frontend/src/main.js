@@ -35,7 +35,14 @@ import {
   faArrowDown,
   faBars,
   faChartPie,
-  faUserPlus
+  faUserPlus,
+  faExclamationCircle,
+  faPlayCircle,
+  faTasks,
+  faComments,
+  faCircle,
+  faEquals,
+  faTrophy
 } from '@fortawesome/free-solid-svg-icons'
 import './firebase' // Import Firebase initialization
 import { setupTokenRefresh } from './utils/auth' // Import token refresh
@@ -77,7 +84,14 @@ library.add(
   faArrowDown,
   faBars,
   faChartPie,
-  faUserPlus
+  faUserPlus,
+  faExclamationCircle,
+  faPlayCircle,
+  faTasks,
+  faComments,
+  faCircle,
+  faEquals,
+  faTrophy
 )
 
 // Register font-awesome-icon component globally

@@ -78,7 +78,7 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAnalyticsStore } from '@/stores/analytics'
 import { storeToRefs } from 'pinia'
 import { formatDistanceToNow } from 'date-fns'
@@ -100,10 +100,10 @@ export default {
     ]
 
     const filteredActivities = computed(() => {
-      if (currentFilter.value === 'all') {
-        return recentActivities.value
-      }
-      return recentActivities.value.filter(activity => activity.type === currentFilter.value)
+      if (!recentActivities.value) return []
+      return currentFilter.value === 'all'
+        ? recentActivities.value
+        : recentActivities.value.filter(activity => activity.type === currentFilter.value)
     })
 
     const getActivityIcon = (type) => {
@@ -117,25 +117,29 @@ export default {
     }
 
     const formatActivityTitle = (activity) => {
+      if (!activity) return 'Unknown activity'
+      
       switch (activity.type) {
         case 'course_access':
-          return `Accessed ${activity.courseName}`
+          return `Accessed ${activity.courseName || 'course'}`
         case 'content_interaction':
-          return `${activity.action} ${activity.contentType} in ${activity.courseName}`
+          return `${activity.action || 'Interacted with'} ${activity.contentType || 'content'} in ${activity.courseName || 'course'}`
         case 'assessment':
-          return `${activity.action} ${activity.assessmentType} in ${activity.courseName}`
+          return `${activity.action || 'Attempted'} ${activity.assessmentType || 'assessment'} in ${activity.courseName || 'course'}`
         case 'discussion':
-          return `${activity.action} in discussion forum`
+          return `${activity.action || 'Participated'} in discussion forum`
         default:
           return 'Unknown activity'
       }
     }
 
     const formatActivityTime = (timestamp) => {
+      if (!timestamp) return ''
       return formatDistanceToNow(new Date(timestamp), { addSuffix: true })
     }
 
     const formatSummaryKey = (key) => {
+      if (!key) return ''
       return key
         .split(/(?=[A-Z])/)
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
@@ -143,14 +147,16 @@ export default {
     }
 
     // Fetch initial data
-    analyticsStore.fetchStudentActivity()
+    onMounted(() => {
+      analyticsStore.fetchStudentActivity()
+    })
 
     return {
       currentFilter,
       filters,
       isLoadingActivity,
       activityError,
-      activitySummary,
+      activitySummary: computed(() => activitySummary.value || {}),
       filteredActivities,
       getActivityIcon,
       formatActivityTitle,

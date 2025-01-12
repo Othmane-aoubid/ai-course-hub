@@ -49,15 +49,25 @@
       </div>
 
       <!-- Engagement Chart -->
-      <div class="h-48">
-        <canvas ref="engagementChart"></canvas>
+      <div class="relative h-48">
+        <div v-if="isLoadingEngagement" class="absolute inset-0 flex items-center justify-center bg-[#232936] bg-opacity-75">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        </div>
+        <div v-else-if="engagementError" class="absolute inset-0 flex items-center justify-center">
+          <p class="text-red-500">{{ engagementError }}</p>
+        </div>
+        <canvas
+          ref="engagementChart"
+          class="w-full h-full"
+          :style="{ visibility: isLoadingEngagement ? 'hidden' : 'visible' }"
+        ></canvas>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, nextTick, onUnmounted, computed } from 'vue'
 import { useAnalyticsStore } from '@/stores/analytics'
 import { storeToRefs } from 'pinia'
 import Chart from 'chart.js/auto'
@@ -73,21 +83,35 @@ export default {
     const engagementChart = ref(null)
     const chartInstance = ref(null)
 
-    const updateChart = () => {
+    const initializeChart = async () => {
+      if (!engagementChart.value || !engagementChartData.value) return
+
+      // Wait for next tick to ensure canvas is in the DOM
+      await nextTick()
+
+      // Ensure the canvas has proper dimensions
+      const canvas = engagementChart.value
+      const parent = canvas.parentElement
+      canvas.width = parent.clientWidth
+      canvas.height = parent.clientHeight
+
+      // Destroy existing chart if it exists
       if (chartInstance.value) {
         chartInstance.value.destroy()
       }
 
-      const ctx = engagementChart.value.getContext('2d')
-      const data = engagementChartData.value[selectedPeriod.value]
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+
+      const data = engagementChartData.value[selectedPeriod.value] || []
 
       chartInstance.value = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: data.map(d => d.label),
+          labels: data.map(d => d.label || ''),
           datasets: [{
             label: 'Engagement',
-            data: data.map(d => d.value),
+            data: data.map(d => d.value || 0),
             borderColor: '#60A5FA',
             backgroundColor: 'rgba(96, 165, 250, 0.1)',
             tension: 0.4,
@@ -128,15 +152,35 @@ export default {
     // Watch for changes in period or data
     watch([selectedPeriod, engagementChartData], () => {
       if (engagementChartData.value) {
-        updateChart()
+        initializeChart()
       }
     })
 
-    // Initial data fetch
-    onMounted(async () => {
-      await analyticsStore.fetchCourseEngagement()
-      if (engagementChartData.value) {
-        updateChart()
+    // Watch for window resize
+    let resizeObserver
+    onMounted(() => {
+      analyticsStore.fetchCourseEngagement()
+      
+      // Create ResizeObserver to handle canvas resizing
+      resizeObserver = new ResizeObserver(() => {
+        if (chartInstance.value) {
+          initializeChart()
+        }
+      })
+
+      // Observe the parent element
+      if (engagementChart.value) {
+        resizeObserver.observe(engagementChart.value.parentElement)
+      }
+    })
+
+    // Cleanup
+    onUnmounted(() => {
+      if (chartInstance.value) {
+        chartInstance.value.destroy()
+      }
+      if (resizeObserver) {
+        resizeObserver.disconnect()
       }
     })
 
@@ -145,9 +189,12 @@ export default {
       engagementChart,
       isLoadingEngagement,
       engagementError,
-      engagementData,
-      activeStudentRate,
-      engagementChartData
+      engagementData: computed(() => engagementData.value || {
+        totalStudents: 0,
+        activeStudents: 0,
+        completionRate: 0
+      }),
+      activeStudentRate: computed(() => activeStudentRate.value || 0)
     }
   }
 }

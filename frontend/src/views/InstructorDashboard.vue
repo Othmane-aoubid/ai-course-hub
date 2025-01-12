@@ -98,6 +98,24 @@
       </div>
     </div>
 
+    <!-- Dashboard Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+      <!-- Course Engagement Card -->
+      <CourseEngagementCard />
+      <!-- Student Activity Card -->
+      <StudentActivityCard />
+      <!-- Video Analytics Card -->
+      <VideoAnalyticsCard 
+        :courseId="selectedCourse"
+        :courseVideos="courseVideos"
+      />
+      <!-- Student Progress Card -->
+      <StudentProgressCard
+        :courseId="selectedCourse"
+        :students="students"
+      />
+    </div>
+
     <!-- Courses Section -->
     <div class="bg-[#232936] rounded-xl p-6">
       <div class="flex items-center justify-between mb-6">
@@ -179,88 +197,127 @@
 </template>
 
 <script>
+import { ref, watch } from 'vue'
+import axios from 'axios'
 import { format } from 'date-fns'
+import CourseEngagementCard from '@/components/dashboard/CourseEngagementCard.vue'
+import StudentActivityCard from '@/components/dashboard/StudentActivityCard.vue'
+import VideoAnalyticsCard from '@/components/dashboard/VideoAnalyticsCard.vue'
+import StudentProgressCard from '@/components/dashboard/StudentProgressCard.vue'
 
 export default {
   name: 'InstructorDashboard',
-  data() {
+  components: {
+    CourseEngagementCard,
+    StudentActivityCard,
+    VideoAnalyticsCard,
+    StudentProgressCard
+  },
+  
+  setup() {
+    const students = ref([])
+    const selectedCourse = ref(null)
+    const selectedPeriod = ref('week')
+    const stats = ref([
+      {
+        name: 'Total Students',
+        value: '1,234',
+        icon: 'users',
+        bgColor: 'bg-gradient-to-r from-blue-500 to-blue-600',
+        change: 12
+      },
+      {
+        name: 'Active Courses',
+        value: '15',
+        icon: 'book',
+        bgColor: 'bg-gradient-to-r from-green-500 to-green-600',
+        change: 8
+      },
+      {
+        name: 'Total Revenue',
+        value: '$12,345',
+        icon: 'dollar-sign',
+        bgColor: 'bg-gradient-to-r from-purple-500 to-purple-600',
+        change: -3
+      },
+      {
+        name: 'Average Rating',
+        value: '4.8',
+        icon: 'star',
+        bgColor: 'bg-gradient-to-r from-yellow-500 to-yellow-600',
+        change: 5
+      }
+    ])
+    const recentActivities = ref([
+      {
+        id: 1,
+        title: 'Updated "Web Development Basics"',
+        time: '2 hours ago',
+        icon: 'edit',
+        iconBg: 'bg-blue-500'
+      },
+      {
+        id: 2,
+        title: 'New student enrollment',
+        time: '4 hours ago',
+        icon: 'user-plus',
+        iconBg: 'bg-green-500'
+      },
+      {
+        id: 3,
+        title: 'Course review received',
+        time: 'Yesterday',
+        icon: 'star',
+        iconBg: 'bg-yellow-500'
+      }
+    ])
+    const courses = ref([
+      {
+        id: 1,
+        title: 'Web Development Fundamentals',
+        description: 'Learn the basics of web development including HTML, CSS, and JavaScript.',
+        status: 'published',
+        updatedAt: new Date().toISOString(),
+        thumbnail: 'https://picsum.photos/400/300',
+        students: 256,
+        rating: 4.7
+      },
+      {
+        id: 2,
+        title: 'Advanced React Patterns',
+        description: 'Master advanced React patterns and best practices for building scalable applications.',
+        status: 'draft',
+        updatedAt: new Date().toISOString(),
+        thumbnail: 'https://picsum.photos/400/301',
+        students: 128,
+        rating: 4.9
+      }
+    ])
+
+    // Fetch students for the selected course
+    const fetchStudents = async (courseId) => {
+      try {
+        const response = await axios.get(`/api/courses/${courseId}/students`)
+        students.value = response.data
+      } catch (error) {
+        console.error('Error fetching students:', error)
+      }
+    }
+
+    // Watch for course changes
+    watch(selectedCourse, (newCourseId) => {
+      if (newCourseId) {
+        fetchStudents(newCourseId)
+      }
+    })
+
     return {
-      selectedPeriod: 'week',
-      stats: [
-        {
-          name: 'Total Students',
-          value: '1,234',
-          icon: 'users',
-          bgColor: 'bg-gradient-to-r from-blue-500 to-blue-600',
-          change: 12
-        },
-        {
-          name: 'Active Courses',
-          value: '15',
-          icon: 'book',
-          bgColor: 'bg-gradient-to-r from-green-500 to-green-600',
-          change: 8
-        },
-        {
-          name: 'Total Revenue',
-          value: '$12,345',
-          icon: 'dollar-sign',
-          bgColor: 'bg-gradient-to-r from-purple-500 to-purple-600',
-          change: -3
-        },
-        {
-          name: 'Average Rating',
-          value: '4.8',
-          icon: 'star',
-          bgColor: 'bg-gradient-to-r from-yellow-500 to-yellow-600',
-          change: 5
-        }
-      ],
-      recentActivities: [
-        {
-          id: 1,
-          title: 'Updated "Web Development Basics"',
-          time: '2 hours ago',
-          icon: 'edit',
-          iconBg: 'bg-blue-500'
-        },
-        {
-          id: 2,
-          title: 'New student enrollment',
-          time: '4 hours ago',
-          icon: 'user-plus',
-          iconBg: 'bg-green-500'
-        },
-        {
-          id: 3,
-          title: 'Course review received',
-          time: 'Yesterday',
-          icon: 'star',
-          iconBg: 'bg-yellow-500'
-        }
-      ],
-      courses: [
-        {
-          id: 1,
-          title: 'Web Development Fundamentals',
-          description: 'Learn the basics of web development including HTML, CSS, and JavaScript.',
-          status: 'published',
-          updatedAt: new Date().toISOString(),
-          thumbnail: 'https://picsum.photos/400/300',
-          students: 256,
-          rating: 4.7
-        },
-        {
-          id: 2,
-          title: 'Advanced React Patterns',
-          description: 'Master advanced React patterns and best practices for building scalable applications.',
-          status: 'draft',
-          updatedAt: new Date().toISOString(),
-          thumbnail: 'https://picsum.photos/400/301',
-          students: 128,
-          rating: 4.9
-        }
-      ]
+      students,
+      selectedCourse,
+      selectedPeriod,
+      stats,
+      recentActivities,
+      courses
     }
   },
   methods: {

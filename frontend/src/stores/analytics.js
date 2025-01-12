@@ -11,7 +11,6 @@ export const useAnalyticsStore = defineStore('analytics', {
         totalStudents: 0,
         activeStudents: 0,
         completionRate: 0,
-        studentActivity: [],
         dailyEngagement: [],
         weeklyEngagement: [],
         monthlyEngagement: []
@@ -20,7 +19,7 @@ export const useAnalyticsStore = defineStore('analytics', {
     studentActivity: {
       loading: false,
       error: null,
-      recentActivities: [],
+      recentActivities: [], 
       activitySummary: {
         courseAccess: 0,
         contentInteractions: 0,
@@ -29,6 +28,30 @@ export const useAnalyticsStore = defineStore('analytics', {
       }
     }
   }),
+
+  getters: {
+    isLoadingEngagement: (state) => state.courseEngagement.loading,
+    engagementError: (state) => state.courseEngagement.error,
+    engagementData: (state) => state.courseEngagement.data,
+    
+    activeStudentRate: (state) => {
+      const { totalStudents, activeStudents } = state.courseEngagement.data
+      return totalStudents ? (activeStudents / totalStudents) * 100 : 0
+    },
+    
+    engagementChartData: (state) => {
+      return {
+        daily: state.courseEngagement.data.dailyEngagement || [],
+        weekly: state.courseEngagement.data.weeklyEngagement || [],
+        monthly: state.courseEngagement.data.monthlyEngagement || []
+      }
+    },
+
+    isLoadingActivity: (state) => state.studentActivity.loading,
+    activityError: (state) => state.studentActivity.error,
+    recentActivities: (state) => state.studentActivity.recentActivities || [], 
+    activitySummary: (state) => state.studentActivity.activitySummary
+  },
 
   actions: {
     async fetchCourseEngagement(courseId = null) {
@@ -65,8 +88,11 @@ export const useAnalyticsStore = defineStore('analytics', {
         
         const response = await axios.get(endpoint)
         
-        this.studentActivity.recentActivities = response.data.recentActivities
-        this.studentActivity.activitySummary = response.data.summary
+        this.studentActivity.recentActivities = response.data.recentActivities || []
+        this.studentActivity.activitySummary = {
+          ...this.studentActivity.activitySummary,
+          ...response.data.summary
+        }
       } catch (error) {
         this.studentActivity.error = error.response?.data?.message || 'Failed to fetch student activity'
         console.error('Error fetching student activity:', error)
@@ -110,29 +136,5 @@ export const useAnalyticsStore = defineStore('analytics', {
         console.error('Error tracking discussion activity:', error)
       }
     }
-  },
-
-  getters: {
-    isLoadingEngagement: (state) => state.courseEngagement.loading,
-    engagementError: (state) => state.courseEngagement.error,
-    engagementData: (state) => state.courseEngagement.data,
-    
-    activeStudentRate: (state) => {
-      const { totalStudents, activeStudents } = state.courseEngagement.data
-      return totalStudents ? (activeStudents / totalStudents) * 100 : 0
-    },
-    
-    engagementChartData: (state) => {
-      return {
-        daily: state.courseEngagement.data.dailyEngagement,
-        weekly: state.courseEngagement.data.weeklyEngagement,
-        monthly: state.courseEngagement.data.monthlyEngagement
-      }
-    },
-
-    isLoadingActivity: (state) => state.studentActivity.loading,
-    activityError: (state) => state.studentActivity.error,
-    recentActivities: (state) => state.studentActivity.recentActivities,
-    activitySummary: (state) => state.studentActivity.activitySummary
   }
 })
