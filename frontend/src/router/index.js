@@ -77,6 +77,30 @@ const routes = [
         path: 'my-progress',
         name: 'my-progress',
         component: () => import('../views/MyProgress.vue')
+      },
+      {
+        path: 'instructor/dashboard',
+        name: 'instructor-dashboard',
+        component: () => import('../views/InstructorDashboard.vue'),
+        meta: { requiresInstructor: true }
+      },
+      {
+        path: 'instructor/courses/new',
+        name: 'create-course-instructor',
+        component: () => import('../views/CourseEditor.vue'),
+        meta: { requiresInstructor: true }
+      },
+      {
+        path: 'instructor/courses/:id/edit',
+        name: 'edit-course-instructor',
+        component: () => import('../views/CourseEditor.vue'),
+        meta: { requiresInstructor: true }
+      },
+      {
+        path: 'instructor/courses/:id/preview',
+        name: 'preview-course-instructor',
+        component: () => import('../views/CourseView.vue'),
+        meta: { requiresInstructor: true }
       }
     ]
   }
@@ -98,10 +122,13 @@ router.beforeEach(async (to, from, next) => {
 
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
   const redirectIfAuth = to.matched.some(record => record.meta.redirectIfAuth)
+  const requiresInstructor = to.matched.some(record => record.meta.requiresInstructor)
 
   if (requiresAuth && !userStore.isAuthenticated) {
     next('/login')
   } else if (redirectIfAuth && userStore.isAuthenticated) {
+    next('/dashboard')
+  } else if (requiresInstructor && !userStore.isInstructor) {
     next('/dashboard')
   } else {
     next()

@@ -21,20 +21,26 @@
       <!-- Navigation -->
       <nav class="mt-4 px-4">
         <div class="space-y-1">
-          <router-link
-            v-for="item in navigation"
-            :key="item.name"
-            :to="item.path"
-            :class="[
-              isCurrentRoute(item.path)
-                ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-300'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700',
-              'group flex items-center px-3 py-2 text-sm font-medium rounded-md'
-            ]"
-          >
-            <i :class="[item.icon, 'mr-3 text-lg']"></i>
-            {{ item.name }}
-          </router-link>
+          <div v-for="item in navigation" :key="item.path">
+            <!-- Instructor Section Header -->
+            <p v-if="item.path === '/instructor/dashboard'" 
+               class="px-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-4 mb-2">
+              Instructor Menu
+            </p>
+
+            <router-link
+              :to="item.path"
+              :class="[
+                isCurrentRoute(item.path)
+                  ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-300'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700',
+                'group flex items-center px-3 py-2 text-sm font-medium rounded-md'
+              ]"
+            >
+              <i :class="[item.icon, 'mr-3 text-lg']"></i>
+              {{ item.name }}
+            </router-link>
+          </div>
         </div>
       </nav>
     </div>
@@ -122,7 +128,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 
@@ -133,7 +139,8 @@ const userStore = useUserStore()
 const isSidebarOpen = ref(true)
 const isProfileMenuOpen = ref(false)
 
-const navigation = [
+// Base navigation items
+const baseNavigation = [
   { name: 'Dashboard', path: '/dashboard', icon: 'fas fa-home' },
   { name: 'My Courses', path: '/my-courses', icon: 'fas fa-book' },
   { name: 'Browse Courses', path: '/browse-courses', icon: 'fas fa-compass' },
@@ -141,6 +148,33 @@ const navigation = [
   { name: 'Settings', path: '/settings', icon: 'fas fa-cog' },
   { name: 'AI Assistant', path: '/chat', icon: 'fas fa-robot' }
 ]
+
+// Instructor-specific navigation items
+const instructorNavigation = [
+  { name: 'Instructor Dashboard', path: '/instructor/dashboard', icon: 'fas fa-chalkboard-teacher' },
+  { name: 'Create Course', path: '/instructor/courses/new', icon: 'fas fa-plus-circle' }
+]
+
+// Computed navigation that includes instructor routes when appropriate
+const navigation = computed(() => {
+  console.log('Computing navigation')
+  console.log('User role:', userStore.user?.role)
+  console.log('Is instructor?', userStore.user?.role === 'instructor')
+  
+  if (userStore.user?.role === 'instructor') {
+    // Insert instructor items after Dashboard
+    const result = [
+      baseNavigation[0], // Dashboard
+      ...instructorNavigation,
+      ...baseNavigation.slice(1)
+    ]
+    console.log('Navigation with instructor items:', result)
+    return result
+  }
+  
+  console.log('Base navigation:', baseNavigation)
+  return baseNavigation
+})
 
 const toggleSidebar = () => {
   isSidebarOpen.value = !isSidebarOpen.value

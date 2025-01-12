@@ -3,165 +3,194 @@
     <!-- Mobile Menu Button -->
     <div class="fixed top-0 left-0 right-0 h-16 bg-gray-900 flex items-center justify-between px-4 lg:hidden z-50">
       <button 
-        @click="$emit('toggleSidebar')" 
-        class="p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none"
-        aria-label="Toggle menu"
+        @click="$emit('toggleSidebar')"
+        class="text-gray-400 hover:text-white focus:outline-none focus:text-white"
       >
-        <svg 
-          class="h-6 w-6" 
-          :class="{ 'hidden': isOpen, 'block': !isOpen }" 
-          stroke="currentColor" 
-          fill="none" 
-          viewBox="0 0 24 24"
-        >
-          <path 
-            stroke-linecap="round" 
-            stroke-linejoin="round" 
-            stroke-width="2" 
-            d="M4 6h16M4 12h16M4 18h16"
-          />
-        </svg>
-        <svg 
-          class="h-6 w-6" 
-          :class="{ 'block': isOpen, 'hidden': !isOpen }" 
-          stroke="currentColor" 
-          fill="none" 
-          viewBox="0 0 24 24"
-        >
-          <path 
-            stroke-linecap="round" 
-            stroke-linejoin="round" 
-            stroke-width="2" 
-            d="M6 18L18 6M6 6l12 12"
-          />
-        </svg>
+        <i class="fas fa-bars text-xl"></i>
       </button>
-      <div class="text-white text-lg font-bold">AI Course Hub</div>
-      <div class="w-10"></div> <!-- Spacer for alignment -->
     </div>
 
     <!-- Sidebar -->
-    <aside 
-      :class="[
-        'fixed inset-y-0 left-0 z-40 w-64 bg-gray-900 dark:bg-gray-950 transition-transform duration-300 ease-in-out transform',
-        isOpen ? 'translate-x-0' : '-translate-x-full'
-      ]"
+    <div 
+      :key="key"
+      class="h-screen bg-gray-900 text-white w-64 fixed top-0 left-0 overflow-y-auto transition-all duration-300 transform lg:translate-x-0"
+      :class="[isOpen ? 'translate-x-0' : '-translate-x-full']"
     >
       <!-- Logo -->
-      <div class="flex items-center justify-center h-16 bg-gray-800 dark:bg-gray-900">
-        <router-link to="/" class="flex items-center">
-          <img class="h-8 w-8" src="/logo.png" alt="AI Course Hub">
-          <span class="ml-2 text-white text-lg font-semibold">AI Course Hub</span>
+      <div class="flex items-center justify-between h-16 px-4">
+        <router-link to="/" class="text-xl font-bold">
+          AI Course Hub
         </router-link>
-      </div>
-
-      <!-- Navigation -->
-      <nav class="mt-5 px-2">
-        <router-link 
-          v-for="item in navigationItems" 
-          :key="item.path"
-          :to="item.path"
-          :class="[
-            'group flex items-center px-2 py-2 text-base font-medium rounded-md mb-1',
-            $route.path === item.path
-              ? 'bg-gray-800 dark:bg-gray-900 text-white'
-              : 'text-gray-300 hover:bg-gray-700 dark:hover:bg-gray-800 hover:text-white'
-          ]"
+        <button 
+          @click="$emit('closeSidebar')"
+          class="lg:hidden text-gray-400 hover:text-white focus:outline-none focus:text-white"
         >
-          <i :class="['mr-4 text-lg', item.icon, $route.path === item.path ? 'text-white' : 'text-gray-400 group-hover:text-white']"></i>
-          {{ item.name }}
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      <!-- Navigation -->
+      <nav class="px-4 py-4">
+        <!-- Dashboard -->
+        <router-link 
+          to="/dashboard"
+          :class="getLinkClass('/dashboard')"
+        >
+          <i class="fas fa-home mr-4 text-lg"></i>
+          Dashboard
+        </router-link>
+        <!-- Instructor Menu -->
+        <div v-if="userStore.user?.role === 'instructor'" class="mt-4">
+          <p class="px-2 py-1 text-xs font-semibold text-gray-400 uppercase">Instructor Menu</p>
+          <router-link 
+            to="/instructor/dashboard"
+            :class="getLinkClass('/instructor/dashboard')"
+          >
+            <i class="fas fa-chalkboard-teacher mr-4 text-lg"></i>
+            Instructor Dashboard
+          </router-link>
+
+          <router-link 
+            to="/instructor/courses/new"
+            :class="getLinkClass('/instructor/courses/new')"
+          >
+            <i class="fas fa-plus-circle mr-4 text-lg"></i>
+            Create Course
+          </router-link>
+        </div>
+
+        <!-- Regular Menu Items -->
+        <router-link 
+          v-for="route in regularRoutes" 
+          :key="route.path"
+          :to="route.path"
+          :class="getLinkClass(route.path)"
+        >
+          <i :class="['mr-4 text-lg', route.icon]"></i>
+          {{ route.name }}
         </router-link>
       </nav>
 
       <!-- User Profile -->
-      <div class="absolute bottom-0 w-full">
-        <div class="px-4 py-4 bg-gray-800">
-          <div class="flex items-center">
-            <div class="flex-shrink-0">
-              <img 
-                :src="authStore.user?.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(authStore.user?.displayName || 'User')" 
-                class="h-8 w-8 rounded-full object-cover"
-                alt="Profile"
-              >
-            </div>
-            <div class="ml-3">
-              <p class="text-sm font-medium text-white truncate max-w-[150px]">
-                {{ authStore.user?.displayName || authStore.user?.email }}
-              </p>
-              <button 
-                @click="handleLogout" 
-                class="text-xs font-medium text-gray-300 hover:text-white transition-colors duration-150"
-              >
-                Sign out
-              </button>
-            </div>
+      <div class="absolute bottom-0 left-0 right-0 p-4 bg-gray-800">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <img 
+              :src="userPhotoURL" 
+              class="h-8 w-8 rounded-full object-cover"
+              alt="Profile"
+            >
+          </div>
+          <div class="ml-3">
+            <p class="text-sm font-medium text-white truncate max-w-[150px]">
+              {{ userDisplayName }}
+            </p>
+            <p class="text-xs text-gray-400">
+              Role: {{ userStore.user?.role || 'No role' }}
+            </p>
+            <button 
+              @click="handleLogout" 
+              class="text-xs text-gray-400 hover:text-white"
+            >
+              Sign out
+            </button>
           </div>
         </div>
       </div>
-    </aside>
-
-    <!-- Overlay -->
-    <div 
-      v-if="isOpen" 
-      @click="$emit('closeSidebar')"
-      class="fixed inset-0 bg-black bg-opacity-50 z-30"
-    ></div>
+    </div>
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue'
+<script>
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { defineProps, defineEmits } from 'vue'
+import { useUserStore } from '../stores/user'
+import { storeToRefs } from 'pinia'
 
-
-defineProps({
-  isOpen: {
-    type: Boolean,
-    required: true
-  }
-})
-
-defineEmits(['closeSidebar', 'toggleSidebar'])
-
-const router = useRouter()
-const authStore = useAuthStore()
-
-const navigationItems = [
-  {
-    name: 'My Courses',
-    path: '/my-courses',
-    icon: 'fas fa-graduation-cap'
+export default {
+  name: 'Sidebar',
+  
+  props: {
+    isOpen: {
+      type: Boolean,
+      required: true
+    }
   },
-  {
-    name: 'Create Course',
-    path: '/create-course',
-    icon: 'fas fa-plus-circle'
-  },
-  {
-    name: 'Browse Courses',
-    path: '/browse-courses',
-    icon: 'fas fa-search'
-  },
-  {
-    name: 'My Progress',
-    path: '/my-progress',
-    icon: 'fas fa-tasks'
-  },
-  {
-    name: 'Settings',
-    path: '/settings',
-    icon: 'fas fa-cog'
-  }
-]
 
-const handleLogout = async () => {
-  try {
-    await authStore.logout()
-    router.push('/login')
-  } catch (error) {
-    console.error('Logout error:', error)
+  emits: ['closeSidebar', 'toggleSidebar'],
+
+  setup() {
+    const userStore = useUserStore()
+    const { user } = storeToRefs(userStore)
+    return { user }
+  },
+
+  data() {
+    const authStore = useAuthStore()
+    const userStore = useUserStore()
+    const router = useRouter()
+
+    return {
+      isDev: true, // Set to true to always show debug info
+      authStore,
+      userStore,
+      router,
+      key: 0,
+      regularRoutes: [
+        { path: '/my-courses', name: 'My Courses', icon: 'fas fa-graduation-cap' },
+        { path: '/browse-courses', name: 'Browse Courses', icon: 'fas fa-search' },
+        { path: '/my-progress', name: 'My Progress', icon: 'fas fa-tasks' },
+        { path: '/settings', name: 'Settings', icon: 'fas fa-cog' }
+      ]
+    }
+  },
+
+  computed: {
+    isInstructor() {
+      console.log('Computing isInstructor')
+      console.log('User role:', this.userStore.user?.role)
+      return this.userStore.user?.role === 'instructor'
+    },
+
+    userPhotoURL() {
+      return this.authStore.user?.photoURL || 
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(this.userDisplayName)}`
+    },
+
+    userDisplayName() {
+      return this.authStore.user?.displayName || this.authStore.user?.email || 'User'
+    }
+  },
+
+  watch: {
+    'userStore.user': {
+      handler(newUser) {
+        console.log('User changed:', newUser)
+        console.log('New role:', newUser?.role)
+        this.key++
+      },
+      deep: true,
+      immediate: true
+    }
+  },
+
+  methods: {
+    getLinkClass(path) {
+      return [
+        'group flex items-center px-2 py-2 text-base font-medium rounded-md mb-1',
+        this.$route.path === path
+          ? 'bg-gray-800 dark:bg-gray-900 text-white'
+          : 'text-gray-300 hover:bg-gray-700 dark:hover:bg-gray-800 hover:text-white'
+      ]
+    },
+
+    async handleLogout() {
+      try {
+        await this.authStore.logout()
+        this.router.push('/login')
+      } catch (error) {
+        console.error('Logout error:', error)
+      }
+    }
   }
 }
 </script>

@@ -207,6 +207,51 @@
           </div>
         </div>
 
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+          <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">Debug Information</h3>
+            <div class="mt-6 space-y-4">
+              <div class="text-sm text-gray-600 dark:text-gray-300">
+                <p>Current Role: <span class="font-medium">{{ userStore.user?.role || 'No role set' }}</span></p>
+                <p>Is Instructor: <span class="font-medium">{{ userStore.isInstructor ? 'Yes' : 'No' }}</span></p>
+                <p>User ID: <span class="font-medium">{{ userStore.user?.id }}</span></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+          <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white">Role Management</h3>
+            <div class="mt-6 space-y-4">
+              <div class="flex space-x-4">
+                <button
+                  @click="setRole('instructor')"
+                  :class="[
+                    'px-4 py-2 rounded-md text-sm font-medium',
+                    userStore.user?.role === 'instructor'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                  ]"
+                >
+                  Set as Instructor
+                </button>
+                <button
+                  @click="setRole('student')"
+                  :class="[
+                    'px-4 py-2 rounded-md text-sm font-medium',
+                    userStore.user?.role === 'student'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                  ]"
+                >
+                  Set as Student
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="flex justify-end">
           <button
             type="button"
@@ -216,152 +261,237 @@
           >
             {{ loading ? 'Saving...' : 'Save Settings' }}
           </button>
+          <button
+            type="button"
+            class="btn btn-secondary ml-2"
+            @click="refreshUserSession"
+          >
+            Refresh Session
+          </button>
         </div>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+<script>
 import { useUserStore } from '../stores/user'
 import { useThemeStore } from '../stores/theme'
+import { useRouter } from 'vue-router'
+import { useToast } from 'vue-toastification'
 import { doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore'
 import { db } from '../firebase'
-import { useToast } from 'vue-toastification'
 
-const toast = useToast()
-const userStore = useUserStore()
-const themeStore = useThemeStore()
-const loading = ref(false)
+export default {
+  name: 'Settings',
 
-const defaultAvatar = '/default-avatar.png'
-const profileImage = ref('')
+  data() {
+    return {
+      loading: false,
+      defaultAvatar: '/default-avatar.png',
+      profileImage: '',
+      userProfile: {
+        displayName: '',
+        email: '',
+        bio: '',
+        preferredTime: 'Morning',
+        weeklyGoal: '3',
+        preferredCategories: [],
+        notifications: {
+          courseUpdates: true,
+          newContent: true,
+          reminders: true,
+          newsletter: false
+        }
+      },
+      learningTimes: ['Morning', 'Afternoon', 'Evening'],
+      categories: ['Programming', 'Design', 'Business', 'Marketing', 'Data Science', 'AI'],
+      notifications: [
+        { id: 'courseUpdates', title: 'Course Updates', description: 'Get notified about updates to your enrolled courses' },
+        { id: 'newContent', title: 'New Content', description: 'Receive notifications about new courses and content' },
+        { id: 'reminders', title: 'Learning Reminders', description: 'Get reminded about your learning schedule' },
+        { id: 'newsletter', title: 'Newsletter', description: 'Receive our weekly newsletter with learning tips' }
+      ],
+      unsubscribe: null
+    }
+  },
 
-const userProfile = reactive({
-  displayName: '',
-  email: '',
-  bio: '',
-  preferredTime: 'Morning',
-  weeklyGoal: '3',
-  preferredCategories: [],
-  notifications: {
-    courseUpdates: true,
-    newContent: true,
-    reminders: true,
-    newsletter: false
-  }
-})
+  computed: {
+    userStore() {
+      return useUserStore()
+    },
+    
+    themeStore() {
+      return useThemeStore()
+    },
+    
+    router() {
+      return useRouter()
+    },
+    
+    toast() {
+      return useToast()
+    }
+  },
 
-const learningTimes = ['Morning', 'Afternoon', 'Evening']
-const categories = ['Programming', 'Design', 'Business', 'Marketing', 'Data Science', 'AI']
-const notifications = [
-  { id: 'courseUpdates', title: 'Course Updates', description: 'Get notified about updates to your enrolled courses' },
-  { id: 'newContent', title: 'New Content', description: 'Receive notifications about new courses and content' },
-  { id: 'reminders', title: 'Learning Reminders', description: 'Get reminded about your learning schedule' },
-  { id: 'newsletter', title: 'Newsletter', description: 'Receive our weekly newsletter with learning tips' }
-]
-
-async function uploadImage(event) {
-  try {
-    loading.value = true
-    const file = event.target.files[0]
-    if (!file) return
-
-    // Convert image to base64
-    const reader = new FileReader()
-    reader.onload = async (e) => {
+  methods: {
+    async uploadImage(event) {
       try {
-        const base64Image = e.target.result
-        const userId = userStore.user.uid
+        this.loading = true
+        const file = event.target.files[0]
+        if (!file) return
+
+        // Convert image to base64
+        const reader = new FileReader()
+        reader.onload = async (e) => {
+          try {
+            const base64Image = e.target.result
+            const userId = this.userStore.user.uid
+            
+            // Store image directly in Firestore
+            await setDoc(doc(db, 'users', userId), {
+              profileImage: base64Image,
+              updatedAt: new Date().toISOString()
+            }, { merge: true })
+            
+            this.profileImage = base64Image
+            this.toast.success('Profile image updated successfully')
+          } catch (error) {
+            console.error('Error saving image to Firestore:', error)
+            this.toast.error('Failed to upload image')
+          } finally {
+            this.loading = false
+          }
+        }
         
-        // Store image directly in Firestore
-        await setDoc(doc(db, 'users', userId), {
-          profileImage: base64Image,
+        reader.onerror = (error) => {
+          console.error('Error reading file:', error)
+          this.toast.error('Failed to read image file')
+          this.loading = false
+        }
+        
+        reader.readAsDataURL(file)
+      } catch (error) {
+        console.error('Error handling image:', error)
+        this.toast.error('Failed to handle image')
+        this.loading = false
+      }
+    },
+
+    async saveSettings() {
+      try {
+        this.loading = true
+        const userId = this.userStore.user.uid
+        const userDocRef = doc(db, 'users', userId)
+        
+        await setDoc(userDocRef, {
+          ...this.userProfile,
+          profileImage: this.profileImage,
           updatedAt: new Date().toISOString()
         }, { merge: true })
         
-        profileImage.value = base64Image
-        toast.success('Profile image updated successfully')
+        this.toast.success('Settings saved successfully')
       } catch (error) {
-        console.error('Error saving image to Firestore:', error)
-        toast.error('Failed to upload image')
+        console.error('Error saving settings:', error)
+        this.toast.error('Failed to save settings')
       } finally {
-        loading.value = false
+        this.loading = false
+      }
+    },
+
+    async loadUserSettings() {
+      try {
+        const userId = this.userStore.user.uid
+        const userDoc = await getDoc(doc(db, 'users', userId))
+        if (userDoc.exists()) {
+          const data = userDoc.data()
+          Object.assign(this.userProfile, data)
+          this.profileImage = data.profileImage || ''
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error)
+        this.toast.error('Failed to load settings')
+      }
+    },
+
+    async refreshUserSession() {
+      try {
+        this.loading = true
+        await this.userStore.initializeAuth()
+        this.toast.success('Session refreshed')
+      } catch (error) {
+        console.error('Error refreshing session:', error)
+        this.toast.error('Failed to refresh session')
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async setRole(role) {
+      try {
+        this.loading = true
+        const userId = this.userStore.user.uid
+        const userDocRef = doc(db, 'users', userId)
+
+        console.log('Setting role to:', role)
+        console.log('Current user state:', this.userStore.user)
+
+        // Create/Update the document
+        const updateData = {
+          role: role,
+          email: this.userStore.user.email,
+          updatedAt: new Date().toISOString()
+        }
+        console.log('Updating with data:', updateData)
+        
+        await setDoc(userDocRef, updateData, { merge: true })
+
+        // Verify the update
+        const updatedDoc = await getDoc(userDocRef)
+        const updatedData = updatedDoc.data()
+        console.log('Updated user document:', updatedData)
+        console.log('New role from Firestore:', updatedData.role)
+
+        // Update local state
+        this.userStore.user = {
+          ...this.userStore.user,
+          role: role
+        }
+        console.log('Updated local user state:', this.userStore.user)
+        
+        this.toast.success(`Role updated to ${role}`)
+        await this.refreshUserSession()
+      } catch (error) {
+        console.error('Error setting role:', error)
+        this.toast.error('Failed to set role')
+      } finally {
+        this.loading = false
       }
     }
-    
-    reader.onerror = (error) => {
-      console.error('Error reading file:', error)
-      toast.error('Failed to read image file')
-      loading.value = false
-    }
-    
-    reader.readAsDataURL(file)
-  } catch (error) {
-    console.error('Error handling image:', error)
-    toast.error('Failed to handle image')
-    loading.value = false
-  }
-}
+  },
 
-async function saveSettings() {
-  try {
-    loading.value = true
-    const userId = userStore.user.uid
+  async mounted() {
+    await this.loadUserSettings()
+    
+    // Set up real-time updates
+    const userId = this.userStore.user.uid
     const userDocRef = doc(db, 'users', userId)
     
-    await setDoc(userDocRef, {
-      ...userProfile,
-      profileImage: profileImage.value,
-      updatedAt: new Date().toISOString()
-    }, { merge: true })
-    
-    toast.success('Settings saved successfully')
-  } catch (error) {
-    console.error('Error saving settings:', error)
-    toast.error('Failed to save settings')
-  } finally {
-    loading.value = false
+    this.unsubscribe = onSnapshot(userDocRef, (doc) => {
+      if (doc.exists()) {
+        const data = doc.data()
+        Object.assign(this.userProfile, data)
+        this.profileImage = data.profileImage || ''
+      }
+    })
+  },
+
+  beforeUnmount() {
+    if (this.unsubscribe) {
+      this.unsubscribe()
+    }
   }
 }
-
-async function loadUserSettings() {
-  try {
-    const userId = userStore.user.uid
-    const userDocRef = doc(db, 'users', userId)
-    const docSnap = await getDoc(userDocRef)
-    
-    if (docSnap.exists()) {
-      const data = docSnap.data()
-      Object.assign(userProfile, data)
-      profileImage.value = data.profileImage || defaultAvatar
-    }
-  } catch (error) {
-    console.error('Error loading settings:', error)
-    toast.error('Failed to load settings')
-  }
-}
-
-// Set up real-time updates
-onMounted(async () => {
-  await loadUserSettings()
-  
-  const userId = userStore.user.uid
-  const userDocRef = doc(db, 'users', userId)
-  
-  // Subscribe to real-time updates
-  const unsubscribe = onSnapshot(userDocRef, (doc) => {
-    if (doc.exists()) {
-      const data = doc.data()
-      Object.assign(userProfile, data)
-      profileImage.value = data.profileImage || defaultAvatar
-    }
-  })
-  
-  // Cleanup subscription on component unmount
-  onUnmounted(() => unsubscribe())
-})
 </script>
 
 <style scoped>
