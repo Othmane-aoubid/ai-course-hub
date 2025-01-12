@@ -284,79 +284,134 @@ Next priority after dashboard completion would be Course Management Enhancements
   - Responsive charts
 - [x] Add real-time data updates using WebSocket
 
+Testing Instructions:
+1. Backend Testing:
+   ```bash
+   # Test engagement endpoints
+   curl -X GET http://localhost:3000/api/analytics/engagement
+   curl -X GET http://localhost:3000/api/analytics/engagement/[courseId]
+   ```
+   Expected Response:
+   ```json
+   {
+     "totalStudents": 100,
+     "activeStudents": 75,
+     "completionRate": 68.5,
+     "dailyEngagement": [{"label": "2025-01-12", "value": 45}],
+     "weeklyEngagement": [...],
+     "monthlyEngagement": [...]
+   }
+   ```
+
+2. Frontend Testing:
+   - Open InstructorDashboard
+   - Verify CourseEngagementCard loads without errors
+   - Check if chart updates when switching between daily/weekly/monthly views
+   - Verify hover tooltips show correct data
+   - Confirm responsive layout on different screen sizes
+
 ##### Student Activity Tracking [⏳ Waiting for Test]
 - [x] Create activity tracking service
-- [x] Implement event tracking system for:
-  - Course access times
-  - Content interaction (videos, documents)
-  - Quiz/assignment attempts
-  - Discussion participation
+- [x] Implement event tracking system
 - [x] Setup activity log database schema
 - [x] Add activity aggregation endpoints
-- [x] Create StudentActivityCard component with:
-  - Activity summary display
-  - Filterable recent activities
-  - Real-time updates
+- [x] Create StudentActivityCard component
 
-##### Course Completion & Video Analytics
-- Implement progress calculation system
-- Create completion tracking service
-- Add video analytics tracking:
-  - Watch duration
-  - Drop-off points
-  - Rewatch segments
-  - Playback speed preferences
-- Setup automated progress updates
+Testing Instructions:
+1. Backend Testing:
+   ```bash
+   # Test activity tracking
+   curl -X POST http://localhost:3000/api/analytics/activity -d '{
+     "type": "course_access",
+     "courseId": "[courseId]",
+     "action": "view"
+   }'
+   
+   # Test activity retrieval
+   curl -X GET http://localhost:3000/api/analytics/activity/[courseId]
+   ```
+   Expected Response:
+   ```json
+   {
+     "recentActivities": [{
+       "type": "course_access",
+       "courseName": "Course Name",
+       "timestamp": "2025-01-12T23:00:00Z"
+     }],
+     "summary": {
+       "courseAccess": 10,
+       "contentInteractions": 25,
+       "assessmentAttempts": 5,
+       "discussionPosts": 8
+     }
+   }
+   ```
 
-#### 2. Student Progress Statistics
-##### Individual Progress Tracking
-- Create student progress dashboard component
-- Implement progress visualization:
-  - Progress timeline
-  - Achievement milestones
-  - Learning path visualization
-  - Skill acquisition tracking
-- Add comparative analysis features
+2. Frontend Testing:
+   - Perform various actions (view course, watch video, take quiz)
+   - Verify activities appear in StudentActivityCard
+   - Test activity filters (All, Course, Content, etc.)
+   - Check real-time updates when new activities occur
 
-##### Class Metrics & Trends
-- Setup analytics aggregation service
-- Implement statistical analysis:
-  - Class performance curves
-  - Trend analysis
-  - Outlier detection
-  - Predictive analytics
-- Create automated reporting system
+##### Course Completion & Video Analytics [⏳ Waiting for Test]
+- [x] Implement progress calculation system
+- [x] Create completion tracking service
+- [x] Add video analytics tracking
+- [x] Setup automated progress updates
 
-#### 3. Revenue Analytics Panel
-##### Financial Metrics Implementation
-- Setup secure financial data handling
-- Create revenue calculation service
-- Implement multiple currency support
-- Add payment tracking system
+Testing Instructions:
+1. Backend Testing:
+   ```bash
+   # Test video progress tracking
+   curl -X POST http://localhost:3000/api/analytics/video-progress/[courseId]/[videoId] -d '{
+     "currentTime": 120,
+     "duration": 300,
+     "playbackRate": 1.5,
+     "watchedSegments": [{"start": 0, "end": 120}],
+     "completed": false
+   }'
 
-##### Visualization & Reporting
-- Create interactive revenue charts:
-  - Monthly/yearly comparisons
-  - Course-wise breakdown
-  - Revenue forecasting
-  - Refund tracking
-- Implement export functionality
-- Add automated financial reports
+   # Test video analytics
+   curl -X GET http://localhost:3000/api/analytics/video-analytics/[courseId]/[videoId]
 
-#### 4. Quick Access Feature Panel
-##### Real-time Updates System
-- Implement notification service
-- Setup WebSocket connections
-- Create notification preferences system
-- Add priority-based sorting
+   # Test completion stats
+   curl -X GET http://localhost:3000/api/analytics/completion-stats/[courseId]
+   ```
+   Expected Responses:
+   ```json
+   // Video Analytics
+   {
+     "totalViews": 50,
+     "completions": 30,
+     "averageWatchTime": 250,
+     "dropOffPoints": [
+       {"time": 60, "count": 5},
+       {"time": 120, "count": 8}
+     ]
+   }
 
-##### Activity Tracking
-- Create activity logging system
-- Implement intelligent course sorting:
-  - Access frequency
-  - Recent updates
-  - Student engagement levels
-- Add quick action shortcuts
+   // Completion Stats
+   {
+     "totalStudents": 100,
+     "totalContent": 20,
+     "completionRates": {
+       "0": 10,
+       "20": 15,
+       "40": 25,
+       "60": 30,
+       "80": 20
+     },
+     "averageCompletion": 65.5
+   }
+   ```
+
+2. Frontend Testing:
+   - Play a course video and verify progress tracking
+   - Test different playback speeds
+   - Check if drop-off points are recorded
+   - Verify completion statistics update
+   - Test video analytics chart interactions
+   - Confirm all metrics update in real-time
 
 ### Technical Requirements
 1. Frontend:
