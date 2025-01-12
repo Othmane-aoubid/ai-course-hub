@@ -1,7 +1,6 @@
 <template>
   <div class="min-h-screen !dark:bg-gray-900">
     <div v-if="isAuthenticated" class="min-h-screen !bg-white !dark:bg-gray-900 !text-gray-900 !dark:text-white">
-      <Header />
       <main>
         <router-view v-slot="{ Component }">
           <component :is="Component" />
@@ -13,7 +12,6 @@
         <component :is="Component" />
       </router-view>
     </div>
-    <Footer v-if="showFooter" />
   </div>
 </template>
 

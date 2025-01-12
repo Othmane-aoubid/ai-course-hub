@@ -1,5 +1,6 @@
 <template>
   <div class="bg-white homeview">
+    <Header />
     <!-- Hero Section -->
     <section class="relative bg-gradient-to-r from-blue-700 to-blue-900 text-white overflow-hidden">
       <div class="container mx-auto px-6 py-20">
@@ -146,6 +147,7 @@
         </router-link>
       </div>
     </section>
+    <Footer />
   </div>
 </template>
 
@@ -154,6 +156,8 @@ import { ref } from 'vue'
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import Header from '../components/Header.vue'
+import Footer from '../components/Footer.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
